@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiForgotPassword, apiResetPassword } from '../services/api.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function ForgotPasswordPage({ onBackToLogin }) {
+export default function ForgotPasswordPage({ onBackToLogin, theme, onToggleTheme }) {
   const [username, setUsername] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -63,6 +63,12 @@ export default function ForgotPasswordPage({ onBackToLogin }) {
 
   return (
     <div className="login-shell">
+      <button className="theme-toggle-float" onClick={onToggleTheme}>
+        <span className="theme-toggle-thumb">
+          <span className="theme-toggle-thumb-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {theme === 'dark' ? 'Claro' : 'Escuro'}
+        </span>
+      </button>
       <div className="login-card">
         <div className="login-brand-panel">
           <BrandLogo variant="dark" className="login-logo" />

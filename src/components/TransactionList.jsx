@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiDeleteTransaction } from '../services/api.js';
 import TransactionForm from './TransactionForm.jsx';
 import { formatCategoryLabel } from '../utils/categoryLabels.js';
@@ -33,9 +33,57 @@ function TrashIcon() {
   );
 }
 
+const PER_PAGE = 10;
+
+const COLUMNS = [
+  { key: 'data',        label: 'Data' },
+  { key: 'descricao',   label: 'Descrição' },
+  { key: 'categoria',   label: 'Categoria' },
+  { key: 'responsavel', label: 'Responsável' },
+  { key: 'tipo',        label: 'Tipo' },
+  { key: 'valor',       label: 'Valor' },
+];
+
+function SortIcon({ dir }) {
+  return (
+    <span className={`sort-icon${dir ? ' sort-icon--active' : ''}`} aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        {/* seta cima */}
+        <path
+          d="M6 1.5L9 5H3L6 1.5Z"
+          fill={dir === 'asc' ? 'currentColor' : 'currentColor'}
+          fillOpacity={dir === 'asc' ? 1 : 0.28}
+        />
+        {/* seta baixo */}
+        <path
+          d="M6 10.5L3 7H9L6 10.5Z"
+          fill={dir === 'desc' ? 'currentColor' : 'currentColor'}
+          fillOpacity={dir === 'desc' ? 1 : 0.28}
+        />
+      </svg>
+    </span>
+  );
+}
+
 export default function TransactionList({ token, transactions, onRefresh, categoryGroups }) {
   const [editId, setEditId] = useState(null);
   const [deleteError, setDeleteError] = useState('');
+  const [page, setPage] = useState(0);
+  const [sortKey, setSortKey] = useState('data');
+  const [sortDir, setSortDir] = useState('desc');
+
+  useEffect(() => {
+    setPage(0);
+  }, [transactions, sortKey, sortDir]);
+
+  function handleSort(key) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  }
 
   async function handleDelete(id) {
     if (!confirm('Confirmar exclusão?')) return;
@@ -52,6 +100,20 @@ export default function TransactionList({ token, transactions, onRefresh, catego
     return <p style={{ color: '#6b7280', fontSize: 14 }}>Nenhuma transação encontrada para o período.</p>;
   }
 
+  const sorted = [...transactions].sort((a, b) => {
+    let va = a[sortKey] ?? '';
+    let vb = b[sortKey] ?? '';
+    if (sortKey === 'valor') {
+      va = Number(va); vb = Number(vb);
+      return sortDir === 'asc' ? va - vb : vb - va;
+    }
+    const cmp = String(va).localeCompare(String(vb), 'pt-BR', { sensitivity: 'base' });
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const totalPages = Math.ceil(sorted.length / PER_PAGE);
+  const paginated = sorted.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+
   return (
     <>
       {deleteError && <p className="error-msg">{deleteError}</p>}
@@ -59,17 +121,23 @@ export default function TransactionList({ token, transactions, onRefresh, catego
       <table>
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Categoria</th>
-            <th>Responsável</th>
-            <th>Tipo</th>
-            <th>Valor</th>
+            {COLUMNS.map((col) => (
+              <th key={col.key}>
+                <button
+                  className="th-sort-btn"
+                  onClick={() => handleSort(col.key)}
+                  title={`Ordenar por ${col.label}`}
+                >
+                  {col.label}
+                  <SortIcon dir={sortKey === col.key ? sortDir : null} />
+                </button>
+              </th>
+            ))}
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          {transactions.map((t) =>
+          {paginated.map((t) =>
             editId === t.id ? (
               <tr key={t.id}>
                 <td colSpan={7}>
@@ -108,6 +176,27 @@ export default function TransactionList({ token, transactions, onRefresh, catego
         </tbody>
       </table>
       </div>
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 0}
+          >
+            ‹ Anterior
+          </button>
+          <span className="pagination-info">
+            Página {page + 1} de {totalPages}
+          </span>
+          <button
+            className="pagination-btn"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page === totalPages - 1}
+          >
+            Próxima ›
+          </button>
+        </div>
+      )}
     </>
   );
 }

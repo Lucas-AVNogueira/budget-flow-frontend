@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiUpdateOwnPassword } from '../services/api.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function ChangePasswordPage({ token, username, onBack, onLogout }) {
+export default function ChangePasswordPage({ token, username, onBack, onLogout, theme, onToggleTheme }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,7 +44,14 @@ export default function ChangePasswordPage({ token, username, onBack, onLogout }
       <nav className="navbar">
         <BrandLogo variant="dark" style={{ height: 60 }} />
         <div className="navbar-user">
-          <span>Olá, <strong>{username}</strong></span>
+          <button className="theme-toggle-btn" onClick={onToggleTheme}>
+            <span className="theme-toggle-thumb">
+              <span className="theme-toggle-thumb-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+              {theme === 'dark' ? 'Claro' : 'Escuro'}
+            </span>
+          </button>
+          <span className="navbar-separator">|</span>
+          <span>Olá, <strong>{username.includes('@') ? username.split('@')[0].split('.')[0].charAt(0).toUpperCase() + username.split('@')[0].split('.')[0].slice(1) : username}</strong></span>
           <span className="navbar-separator">|</span>
           <button className="navbar-link" onClick={onBack}>Voltar ao painel</button>
           <span className="navbar-separator">|</span>

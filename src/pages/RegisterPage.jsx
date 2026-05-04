@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiRegisterUser } from '../services/api.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function RegisterPage({ onBackToLogin }) {
+export default function RegisterPage({ onBackToLogin, theme, onToggleTheme }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,6 +35,12 @@ export default function RegisterPage({ onBackToLogin }) {
 
   return (
     <div className="login-shell">
+      <button className="theme-toggle-float" onClick={onToggleTheme}>
+        <span className="theme-toggle-thumb">
+          <span className="theme-toggle-thumb-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {theme === 'dark' ? 'Claro' : 'Escuro'}
+        </span>
+      </button>
       <div className="login-card">
         <div className="login-brand-panel">
           <BrandLogo variant="dark" className="login-logo" />

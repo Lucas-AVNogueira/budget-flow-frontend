@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiLogin } from '../services/api.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword }) {
+export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword, theme, onToggleTheme }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
@@ -16,7 +16,7 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword })
 
     try {
       const token = await apiLogin(username, password);
-      onLogin(token, username);
+      onLogin(token, username, remember);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -26,6 +26,12 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword })
 
   return (
     <div className="login-shell">
+      <button className="theme-toggle-float" onClick={onToggleTheme}>
+        <span className="theme-toggle-thumb">
+          <span className="theme-toggle-thumb-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {theme === 'dark' ? 'Claro' : 'Escuro'}
+        </span>
+      </button>
       <div className="login-card login-card--showcase">
         <div className="login-brand-panel login-brand-panel--showcase">
           <BrandLogo variant="dark" className="login-logo" />

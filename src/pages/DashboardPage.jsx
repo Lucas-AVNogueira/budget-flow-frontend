@@ -6,7 +6,7 @@ import SummaryPanel from '../components/SummaryPanel.jsx';
 import TransactionChart from '../components/TransactionChart.jsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function DashboardPage({ token, username, onLogout, onGoChangePassword }) {
+export default function DashboardPage({ token, username, onLogout, onGoChangePassword, theme, onToggleTheme }) {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
@@ -68,7 +68,14 @@ export default function DashboardPage({ token, username, onLogout, onGoChangePas
       <nav className="navbar">
         <BrandLogo variant="dark" style={{ height: 60 }} />
         <div className="navbar-user">
-          <span>Olá, <strong>{username}</strong></span>
+          <button className="theme-toggle-btn" onClick={onToggleTheme} title="Alternar tema">
+            <span className="theme-toggle-thumb">
+              <span className="theme-toggle-thumb-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+              {theme === 'dark' ? 'Claro' : 'Escuro'}
+            </span>
+          </button>
+          <span className="navbar-separator">|</span>
+          <span>Olá, <strong>{username.includes('@') ? username.split('@')[0].split('.')[0].charAt(0).toUpperCase() + username.split('@')[0].split('.')[0].slice(1) : username}</strong></span>
           <span className="navbar-separator">|</span>
           <button className="navbar-link" onClick={onGoChangePassword}>
             Alterar senha

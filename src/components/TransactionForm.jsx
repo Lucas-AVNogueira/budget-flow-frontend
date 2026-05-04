@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import { apiCreateTransaction, apiUpdateTransaction } from '../services/api.js';
 import { formatCategorySelectLabel } from '../utils/categoryLabels.js';
@@ -11,6 +11,20 @@ const EMPTY = {
   responsavel: '',
   data: '',
 };
+
+function useIsDark() {
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute('data-theme') === 'dark'
+  );
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+  return isDark;
+}
 
 function extractGroupIcon(label = '') {
   const parts = label.trim().split(' ');
@@ -90,14 +104,16 @@ export default function TransactionForm({
     return null;
   }, [form.categoria, categoryOptions]);
 
+  const isDark = useIsDark();
+
   const categorySelectStyles = {
     control: (base, state) => ({
       ...base,
       minHeight: 44,
       borderRadius: 10,
-      borderColor: state.isFocused ? '#7ea2d7' : '#ccd5e2',
+      borderColor: state.isFocused ? '#7ea2d7' : (isDark ? '#3d4f63' : '#ccd5e2'),
       boxShadow: state.isFocused ? '0 0 0 2px rgba(126, 162, 215, 0.2)' : 'none',
-      backgroundColor: '#fbfdff',
+      backgroundColor: isDark ? '#1e293b' : '#fbfdff',
       '&:hover': { borderColor: '#7ea2d7' },
     }),
     valueContainer: (base) => ({
@@ -110,22 +126,26 @@ export default function TransactionForm({
       maxWidth: 'calc(100vw - 24px)',
       borderRadius: 14,
       overflow: 'hidden',
-      border: '1px solid #d2dbe8',
-      boxShadow: '0 18px 42px rgba(15, 23, 42, 0.24)',
+      border: `1px solid ${isDark ? '#2d3748' : '#d2dbe8'}`,
+      boxShadow: isDark
+        ? '0 18px 42px rgba(0, 0, 0, 0.6)'
+        : '0 18px 42px rgba(15, 23, 42, 0.24)',
       marginTop: 6,
+      backgroundColor: isDark ? '#1a2236' : '#fff',
     }),
     menuList: (base) => ({
       ...base,
       maxHeight: 420,
       paddingTop: 0,
       paddingBottom: 0,
+      backgroundColor: isDark ? '#1a2236' : '#fff',
     }),
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
     group: (base, state) => ({
       ...base,
       paddingTop: state.data.groupIndex === 0 ? 8 : 14,
       paddingBottom: 10,
-      borderTop: state.data.groupIndex === 0 ? 'none' : '1px solid #d9e1ec',
+      borderTop: state.data.groupIndex === 0 ? 'none' : `1px solid ${isDark ? '#2d3748' : '#d9e1ec'}`,
     }),
     groupHeading: (base) => ({
       ...base,
@@ -133,7 +153,7 @@ export default function TransactionForm({
       fontWeight: 800,
       textTransform: 'none',
       letterSpacing: 0,
-      color: '#1f2d44',
+      color: isDark ? '#94a3b8' : '#1f2d44',
       margin: '0 12px 6px',
       padding: 0,
     }),
@@ -142,25 +162,39 @@ export default function TransactionForm({
       fontSize: 16,
       lineHeight: 1.15,
       fontWeight: 500,
-      color: '#1f2937',
+      color: isDark ? '#e2e8f0' : '#1f2937',
       padding: '4px 16px 4px 44px',
-      backgroundColor: state.isFocused ? '#eef4ff' : '#fff',
+      backgroundColor: state.isFocused
+        ? (isDark ? '#243044' : '#eef4ff')
+        : (isDark ? '#1a2236' : '#fff'),
       cursor: 'pointer',
     }),
     placeholder: (base) => ({
       ...base,
-      color: '#6b7280',
+      color: isDark ? '#64748b' : '#6b7280',
       fontSize: 16,
     }),
     singleValue: (base) => ({
       ...base,
       fontSize: 16,
       fontWeight: 500,
-      color: '#273346',
+      color: isDark ? '#e2e8f0' : '#273346',
     }),
     indicatorsContainer: (base) => ({
       ...base,
       paddingRight: 4,
+    }),
+    indicatorSeparator: (base) => ({
+      ...base,
+      backgroundColor: isDark ? '#3d4f63' : base.backgroundColor,
+    }),
+    dropdownIndicator: (base) => ({
+      ...base,
+      color: isDark ? '#64748b' : base.color,
+    }),
+    clearIndicator: (base) => ({
+      ...base,
+      color: isDark ? '#64748b' : base.color,
     }),
   };
 
@@ -264,7 +298,10 @@ export default function TransactionForm({
           name="responsavel"
           placeholder="Responsável"
           value={form.responsavel}
-          onChange={handleChange}
+          onChange={(e) => {
+            const val = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+            handleChange({ target: { name: 'responsavel', value: val } });
+          }}
           required
         />
         <input

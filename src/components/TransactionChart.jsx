@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatCategoryLabel } from '../utils/categoryLabels.js';
 
 function toCurrency(val) {
@@ -24,6 +25,7 @@ function describeArc(cx, cy, radius, startAngle, endAngle) {
 }
 
 export default function TransactionChart({ transactions }) {
+  const [tooltip, setTooltip] = useState(null);
   const size = 260;
   const center = size / 2;
   const radius = 92;
@@ -72,8 +74,35 @@ export default function TransactionChart({ transactions }) {
 
   const hasValues = total > 0;
 
+  function handleSliceEnter(e, slice) {
+    const rect = e.currentTarget.closest('svg').parentElement.getBoundingClientRect();
+    setTooltip({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      label: `${slice.tipo === 'ENTRADA' ? 'Entrada' : 'Despesa'} · ${formatCategoryLabel(slice.categoria)}`,
+      value: toCurrency(slice.total),
+      pct: toPercent(slice.pct),
+      color: slice.color,
+    });
+  }
+
+  function handleSliceMove(e, slice) {
+    const rect = e.currentTarget.closest('svg').parentElement.getBoundingClientRect();
+    setTooltip(prev => prev ? { ...prev, x: e.clientX - rect.left, y: e.clientY - rect.top } : prev);
+  }
+
   return (
-    <div className="tx-pie-wrap">
+    <div className="tx-pie-wrap" style={{ position: 'relative' }}>
+      {tooltip && (
+        <div
+          className="tx-pie-tooltip"
+          style={{ left: tooltip.x + 12, top: tooltip.y - 36, borderColor: tooltip.color }}
+        >
+          <span className="tx-pie-tooltip-label">{tooltip.label}</span>
+          <span className="tx-pie-tooltip-value" style={{ color: tooltip.color }}>{tooltip.value}</span>
+          <span className="tx-pie-tooltip-pct">{tooltip.pct}</span>
+        </div>
+      )}
       <div className="tx-chart-legend">
         {slices.map((slice) => (
           <span key={`${slice.tipo}-${slice.categoria}`} className="tx-chart-legend-item">
@@ -88,7 +117,7 @@ export default function TransactionChart({ transactions }) {
         )}
       </div>
 
-      <svg viewBox={`0 0 ${size} ${size}`} className="tx-pie" role="img" aria-label="Grafico de pizza consolidado por categoria">
+      <svg viewBox={`0 0 ${size} ${size}`} className="tx-pie" role="img" aria-label="Grafico de pizza consolidado por categoria" onMouseLeave={() => setTooltip(null)}>
         <circle cx={center} cy={center} r={radius} className="tx-pie-base" strokeWidth={strokeWidth} />
 
         {slices.map((slice) => {
@@ -102,6 +131,9 @@ export default function TransactionChart({ transactions }) {
                 fill="none"
                 stroke={slice.color}
                 strokeWidth={strokeWidth}
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={(e) => handleSliceEnter(e, slice)}
+                onMouseMove={(e) => handleSliceMove(e, slice)}
               />
             );
           }
@@ -115,6 +147,9 @@ export default function TransactionChart({ transactions }) {
               stroke={slice.color}
               strokeWidth={strokeWidth}
               strokeLinecap="butt"
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={(e) => handleSliceEnter(e, slice)}
+              onMouseMove={(e) => handleSliceMove(e, slice)}
             />
           );
         })}
