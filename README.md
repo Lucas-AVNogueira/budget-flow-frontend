@@ -46,7 +46,7 @@ VITE_API_PROXY_TARGET=http://localhost:3001
 
 ## Executando localmente
 
-1. Suba a API externamente (repositorio budget-flow, pasta api).
+1. Suba a API externamente (repositorio budget-flow-api, pasta api).
 2. Neste repositorio, execute:
 
 ```bash
