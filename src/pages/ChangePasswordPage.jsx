@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiUpdateOwnPassword } from '../services/api.js';
 import BrandLogo from '../components/BrandLogo.jsx';
+import UserAvatar from '../components/UserAvatar.jsx';
 
 export default function ChangePasswordPage({ token, username, onBack, onLogout, theme, onToggleTheme }) {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -51,7 +52,10 @@ export default function ChangePasswordPage({ token, username, onBack, onLogout, 
             </span>
           </button>
           <span className="navbar-separator">|</span>
-          <span>Olá, <strong>{username.includes('@') ? username.split('@')[0].split('.')[0].charAt(0).toUpperCase() + username.split('@')[0].split('.')[0].slice(1) : username}</strong></span>
+          <span className="navbar-greeting">
+            <UserAvatar username={username} />
+            Olá, <strong>{username.includes('@') ? username.split('@')[0].split('.')[0].charAt(0).toUpperCase() + username.split('@')[0].split('.')[0].slice(1) : username}</strong>
+          </span>
           <span className="navbar-separator">|</span>
           <button className="navbar-link" onClick={onBack}>Voltar ao painel</button>
           <span className="navbar-separator">|</span>

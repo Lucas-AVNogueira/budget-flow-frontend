@@ -74,7 +74,7 @@ export default function TransactionForm({
       ? {
           ...EMPTY,
           ...editData,
-          valor: String(editData.valor),
+          valor: formatBRL(String(Math.round(parseFloat(editData.valor) * 100))),
           categoria: editData.categoria || '',
         }
       : { ...EMPTY, data: defaultDate }

@@ -1,7 +1,32 @@
 import { useState, useEffect } from 'react';
 import { apiDeleteTransaction } from '../services/api.js';
 import TransactionForm from './TransactionForm.jsx';
+import ConfirmModal from './ConfirmModal.jsx';
 import { formatCategoryLabel } from '../utils/categoryLabels.js';
+
+function exportCSV(rows) {
+  const headers = ['Data', 'Descrição', 'Categoria', 'Responsável', 'Tipo', 'Valor'];
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [
+    headers.join(';'),
+    ...rows.map((t) => [
+      formatDate(t.data),
+      escape(t.descricao),
+      escape(formatCategoryLabel(t.categoria)),
+      escape(t.responsavel),
+      t.tipo === 'ENTRADA' ? 'Entrada' : 'Despesa',
+      String(t.valor).replace('.', ','),
+    ].join(';')),
+  ];
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `transacoes.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function fmt(val) {
   return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -68,13 +93,15 @@ function SortIcon({ dir }) {
 export default function TransactionList({ token, transactions, onRefresh, categoryGroups }) {
   const [editId, setEditId] = useState(null);
   const [deleteError, setDeleteError] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState('data');
   const [sortDir, setSortDir] = useState('desc');
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     setPage(0);
-  }, [transactions, sortKey, sortDir]);
+  }, [transactions, sortKey, sortDir, filter]);
 
   function handleSort(key) {
     if (sortKey === key) {
@@ -85,14 +112,16 @@ export default function TransactionList({ token, transactions, onRefresh, catego
     }
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Confirmar exclusão?')) return;
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
     setDeleteError('');
     try {
-      await apiDeleteTransaction(token, id);
+      await apiDeleteTransaction(token, pendingDeleteId);
+      setPendingDeleteId(null);
       onRefresh();
     } catch (err) {
       setDeleteError(err.message);
+      setPendingDeleteId(null);
     }
   }
 
@@ -100,7 +129,26 @@ export default function TransactionList({ token, transactions, onRefresh, catego
     return <p style={{ color: '#6b7280', fontSize: 14 }}>Nenhuma transação encontrada para o período.</p>;
   }
 
-  const sorted = [...transactions].sort((a, b) => {
+  const filterLower = filter.trim().toLowerCase().replace(/\u00a0/g, ' ');
+  const filtered = filterLower
+    ? transactions.filter((t) => {
+        const date = t.data ? t.data.split('-').reverse().join('/') : '';
+        const valor = t.valor != null ? fmt(t.valor).replace(/\u00a0/g, ' ').toLowerCase() : '';
+        const categoriaLabel = formatCategoryLabel(t.categoria ?? '').toLowerCase();
+        const tipo = t.tipo === 'ENTRADA' ? 'entrada' : 'despesa';
+        return [
+          t.descricao,
+          t.categoria,
+          categoriaLabel,
+          t.responsavel,
+          tipo,
+          date,
+          valor,
+        ].some((v) => String(v ?? '').toLowerCase().includes(filterLower));
+      })
+    : transactions;
+
+  const sorted = [...filtered].sort((a, b) => {
     let va = a[sortKey] ?? '';
     let vb = b[sortKey] ?? '';
     if (sortKey === 'valor') {
@@ -116,7 +164,84 @@ export default function TransactionList({ token, transactions, onRefresh, catego
 
   return (
     <>
+      <ConfirmModal
+        open={pendingDeleteId !== null}
+        title="Excluir transação"
+        message="Essa ação não pode ser desfeita. Deseja realmente excluir esta transação?"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+
+      {editId !== null && (() => {
+        const editData = transactions.find((t) => t.id === editId);
+        return (
+          <div className="modal-backdrop" onClick={() => setEditId(null)} aria-modal="true" role="dialog" aria-label="Editar transação">
+            <div className="modal-box modal-box--form" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-form-header">
+                <h3 className="modal-title" style={{ marginBottom: 0 }}>Editar transação</h3>
+                <button className="modal-close-btn" onClick={() => setEditId(null)} aria-label="Fechar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <TransactionForm
+                token={token}
+                editData={editData}
+                categoryGroups={categoryGroups}
+                onSaved={() => { setEditId(null); onRefresh(); }}
+                onCancel={() => setEditId(null)}
+              />
+            </div>
+          </div>
+        );
+      })()}
+
       {deleteError && <p className="error-msg">{deleteError}</p>}
+      <div className="filter-toolbar">
+        <div className="filter-bar">
+          <span className="filter-bar__icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="21" y2="21" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            placeholder="Buscar transações…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="filter-bar__input"
+          />
+          {filter && (
+            <span className="filter-bar__count">{filtered.length} de {transactions.length}</span>
+          )}
+          {filter && (
+            <button className="filter-bar__clear" onClick={() => setFilter('')} title="Limpar filtro" aria-label="Limpar filtro">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <button
+          className="btn-export-csv"
+          onClick={() => exportCSV(sorted)}
+          title="Exportar CSV"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          CSV
+        </button>
+      </div>
       <div className="table-wrap">
       <table>
         <thead>
@@ -137,20 +262,7 @@ export default function TransactionList({ token, transactions, onRefresh, catego
           </tr>
         </thead>
         <tbody>
-          {paginated.map((t) =>
-            editId === t.id ? (
-              <tr key={t.id}>
-                <td colSpan={7}>
-                  <TransactionForm
-                    token={token}
-                    editData={t}
-                    categoryGroups={categoryGroups}
-                    onSaved={() => { setEditId(null); onRefresh(); }}
-                    onCancel={() => setEditId(null)}
-                  />
-                </td>
-              </tr>
-            ) : (
+          {paginated.map((t) => (
               <tr key={t.id}>
                 <td>{formatDate(t.data)}</td>
                 <td>{t.descricao}</td>
@@ -166,7 +278,7 @@ export default function TransactionList({ token, transactions, onRefresh, catego
                   <button className="btn-icon btn-edit" onClick={() => setEditId(t.id)} title="Editar">
                     <PencilIcon />
                   </button>
-                  <button className="btn-icon btn-delete" onClick={() => handleDelete(t.id)} title="Excluir">
+                  <button className="btn-icon btn-delete" onClick={() => setPendingDeleteId(t.id)} title="Excluir">
                     <TrashIcon />
                   </button>
                 </td>

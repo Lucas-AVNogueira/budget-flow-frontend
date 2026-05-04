@@ -5,6 +5,7 @@ import TransactionList from '../components/TransactionList.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
 import TransactionChart from '../components/TransactionChart.jsx';
 import BrandLogo from '../components/BrandLogo.jsx';
+import UserAvatar from '../components/UserAvatar.jsx';
 
 export default function DashboardPage({ token, username, onLogout, onGoChangePassword, theme, onToggleTheme }) {
   const now = new Date();
@@ -75,7 +76,10 @@ export default function DashboardPage({ token, username, onLogout, onGoChangePas
             </span>
           </button>
           <span className="navbar-separator">|</span>
-          <span>Olá, <strong>{username.includes('@') ? username.split('@')[0].split('.')[0].charAt(0).toUpperCase() + username.split('@')[0].split('.')[0].slice(1) : username}</strong></span>
+          <span className="navbar-greeting">
+            <UserAvatar username={username} />
+            Olá, <strong>{username.includes('@') ? username.split('@')[0].split('.')[0].charAt(0).toUpperCase() + username.split('@')[0].split('.')[0].slice(1) : username}</strong>
+          </span>
           <span className="navbar-separator">|</span>
           <button className="navbar-link" onClick={onGoChangePassword}>
             Alterar senha
