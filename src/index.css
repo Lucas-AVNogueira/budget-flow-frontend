@@ -39,14 +39,18 @@ h1, h2, h3 {
 
 .login-shell {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: #e5e8ee;
 }
 
 .login-card {
   width: 100%;
+  flex: 1;
   min-height: 100vh;
   display: grid;
   grid-template-columns: 46% 54%;
+  align-items: stretch;
 }
 
 .login-brand-panel {
@@ -56,6 +60,7 @@ h1, h2, h3 {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  min-height: 100%;
 }
 
 .login-logo {
